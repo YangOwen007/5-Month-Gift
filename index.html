@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>5 Month Gift</title>
+  <meta name="description" content="A little coordinate love note — for Kathy." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="c" aria-label="5 Month Gift animation"></canvas>
+
+    <div id="start-screen" class="overlay">
+      <div class="card">
+        <p class="eyebrow">for Kathy</p>
+        <h1>5 Month Gift</h1>
+        <p class="sub">a little something drawn in coordinates</p>
+        <button id="play-btn" type="button">Play</button>
+      </div>
+    </div>
+
+    <div id="end-bar" class="end-bar hidden" aria-live="polite">
+      <button id="replay-btn" type="button">Replay</button>
+    </div>
+  </div>
+
+  <script src="geometry.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
