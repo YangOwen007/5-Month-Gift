@@ -1,56 +1,77 @@
 # 5 Month Gift
 
-A static GitHub Pages animation: coordinate axes, a zoom into the cat’s speech-bubble heart, then the full **I L♥VE / KATHY / CHEN** lettering and cat sticker line art.
+A static, dependency-free coordinate love note for Kathy.
 
-**Live URL:** https://YangOwen007.github.io/5-Month-Gift/
+**Live:** https://YangOwen007.github.io/5-Month-Gift/
 
 ## Storyboard
 
-1. Start screen with **Play**
-2. Empty cartesian axes + faint grid
-3. Camera zooms to the speech-bubble heart
-4. One heart ink layer draws (camera follows the tip; speed eases in)
-5. Pause (~3s)
-6. Zoom out while letters + remaining cat curves draw with staggered timing
-7. Final hold of the complete figure — **Replay** restarts cleanly
+1. Start screen → **Play**.
+2. Empty Cartesian guides (700 ms).
+3. Zoom into the speech-bubble heart (2,600 ms).
+4. Draw one continuous heart curve, easing in and following the tip (5,200 ms).
+5. Pause (3,000 ms).
+6. Zoom out as the outlined **I L♥VE / KATHY / CHEN** and sticker draw (16,000 ms).
+7. Hold the outlines briefly (900 ms).
+8. White, pink, and gray colors sweep through the cat and thick letter shapes
+   with staggered timing (6,500 ms).
+9. Final hold → **Replay**, resetting every drawing and fill progress value.
 
-## Phase-1 heart curves
-
-Speech-bubble heart (clean inner ink layer) = **Bezier indices `287`–`297`** (0-based into the 401 cat cubics from `cat_equations_only.txt` / the Bezier block of `final_equations_paste.txt`).
-
-They are chained into one continuous stroke starting at the bottom tip:
-
-`290 → 291 → 292 → 293 → 294 → 295 → 296 → 297 → 287 → 288 → 289`
-
-Nested outer heart layers and the bubble outline draw later in the multi-draw phase.
-
-## Local test
-
-No build step. From this folder:
-
-```bash
-cd /workspace/5-month-gift   # or your clone root
-python -m http.server 8080
-```
-
-Open http://127.0.0.1:8080/
+The cat is traced from the supplied sticker, using smooth cubic Bezier curves.
+The letters retain the original arrangement and are widened into closed shapes,
+with joined intersections and preserved holes. Canvas draws exact curves even
+while a stroke is incomplete; sampled arc lengths are used only for timing.
 
 ## Files
 
-| File | Role |
-|------|------|
-| `index.html` | Page shell + start overlay |
-| `style.css` | Warm romantic UI |
-| `main.js` | Camera, timing, stroke animation |
-| `geometry.js` | Parsed letter segments + sampled Beziers |
-| `preview-final.png` | Optional static preview of final composition |
+| File | Purpose |
+|---|---|
+| `index.html`, `style.css` | Original page shell and warm UI |
+| `main.js` | Camera, exact curve drawing, staggered color fill, Replay |
+| `artwork.js` | Generated closed vector shapes and equation control points |
+| `assets/sticker-reference.png` | Supplied sticker used for tracing |
+| `equations/sticker-v2.json` | All current parametric equations, with stable IDs |
+| `equations/original-v1-sampled.json` | All original handoff geometry |
+| `equations/README.md` | Equation format, coordinate system, and ID mapping |
+| `tools/rebuild-art.py` | Optional artwork/equation authoring tool |
+| `tools/verify-animation.cjs` | Deterministic playback and equation smoke checks |
+| `geometry.js`, `preview-final.png` | Original handoff data and original preview, retained for reference |
 
-## GitHub Pages
+**Equation pop-ups are not implemented.** The saved IDs and formulas support
+matching a visible segment to its equation in a future animation.
 
-Repo: https://github.com/YangOwen007/5-Month-Gift  
+## Run locally
 
-Settings → Pages → Source: **Deploy from a branch** → `main` / `/ (root)`.
+From the repository folder:
 
-## Geometry source
+```sh
+python -m http.server 8080
+```
 
-Built from `/workspace/desmos-cat-exact/final_equations_paste.txt` (37 letter eqs + 401 cubic Beziers) and `cat_equations_only.txt`. World ≈ `x ∈ [0.5, 17]`, `y ∈ [0.5, 10]`.
+Open http://127.0.0.1:8080/ and press Play. No build step is required.
+
+GitHub Pages publishes `main` / `/ (root)`.
+
+## Restore the original version
+
+The exact verified original is saved locally and on GitHub as **`v1-line-art`**,
+pointing to commit **`969a8a6`**. It can also be downloaded from the tag's archive.
+
+To restore its application files without rewriting Git history:
+
+```sh
+git switch main
+git restore --source=v1-line-art -- index.html style.css main.js geometry.js README.md
+git add index.html style.css main.js geometry.js README.md
+git commit -m "Restore original line-art gift"
+git push origin main
+```
+
+The newer artwork and equation archives can remain for future use; the original
+page does not load them. This restores the original visuals, timing, and Replay.
+
+## Regenerate the artwork (optional)
+
+The reference image and `v1-line-art` tag are the authoring inputs. See the
+instructions at the top of `tools/rebuild-art.py` for its Python dependencies.
+These tools are not needed by the site, GitHub Pages, or the visitor's browser.
