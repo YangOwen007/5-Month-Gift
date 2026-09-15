@@ -1,3 +1,0 @@
-/* gzip-compressed geometry */
-window.__GIFT_GEOMETRY_READY__ = (async function () {
-  const b64 = "H4sIAH3QqGoC/5y9ya42R5Il9ioEV2rgL8rngdqpNxIgaKNlIdFgZrI6iWaR2ZksqUqFenfZOTaER9wbJNUJ/Mj7GSM8fDA3Oza4+b9//c/f//Ld19/++9f/z89/+/HP+ONf//mHn77+Nn3Tv8if3/3r19/m+eXrf7uI/6bE9B9fvv7rX777+/f5f/v+u7/98r//+e9ff/uPZacvZWf5V+RflX9N/nX5N+Tf/FIW/i35t//gr8ub/9fPf/vl+z/j/eu/f/mNtuL9//PnX77/+tuv/9fv/98fvv/bVz/89Ocf/vT937+Slv5Bnvrqf0r/8Ed56s/yH375+as/fffLV/bgjz/8/fP+
