@@ -1,7 +1,7 @@
 # Saved drawing equations
 
 `sticker-v2.json` contains every equation used by the upgraded cat and lettering.
-The site now displays five representative floating equations, derived directly
+The site now displays thirteen representative floating equations, derived directly
 from these control points. Display coefficients are rounded to three decimals
 and marked ≈. This archive retains the complete, full-precision equations.
 

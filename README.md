@@ -13,13 +13,15 @@ A static, dependency-free coordinate love note for Kathy.
    draws for 5,200 ms. After both finish, the equation fades for 600 ms.
 5. Pause (3,000 ms), beginning after the equation has faded.
 6. Zoom out as the outlined **I L♥VE / KATHY / CHEN** and sticker draw with the
-   original colored-version stagger, speed, and curve order. Four representative
+   original colored-version stagger, speed, and curve order. Twelve representative
    equations type as warm gray-tan text directly on the graph, leading their
    selected segments by 500 ms. There are no panels, pointers, or headings;
-   equations stay on one line when they fit. At most two appear together.
+   equations stay on one line when they fit. Up to four appear together, with
+   fixed graph-space anchors that move smoothly with the camera.
 7. Coloring starts at the end of the 15,900 ms reveal: the former 900 ms hold
    and 100 ms of settled reveal time have been removed (one second total).
-8. White, pink, and gray colors sweep through the cat and thick letter shapes
+8. Charcoal starts filling with the color chapter (never during drawing).
+   White, pink, and gray colors sweep through the cat and thick letter shapes
    with staggered timing (6,500 ms).
 9. Final hold → **Replay**, resetting every drawing and fill progress value.
 
@@ -43,7 +45,7 @@ while a stroke is incomplete; sampled arc lengths are used only for timing.
 | `tools/verify-animation.cjs` | Deterministic playback and equation smoke checks |
 | `geometry.js`, `preview-final.png` | Original handoff data and original preview, retained for reference |
 
-Floating equations show a representative curve or edge for five shapes,
+Thirteen floating equations show representative curves and edges,
 including the opening heart. Their polynomials come from the saved control
 points. Display coefficients are rounded to three decimals and marked **≈**;
 the full-precision geometry and equation archives remain unchanged.

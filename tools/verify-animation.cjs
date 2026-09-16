@@ -28,7 +28,7 @@ function run(width, height) {
     globalAlpha: 1,
     beginPath() {}, closePath() {},
     stroke(path) { if (path) events.push({ time: now, type: "stroke", color: this.strokeStyle, closed: path.closed, first: path.first }); },
-    fillText(text) { if (this.globalAlpha > 0) events.push({ time: now, type: "text", text, color: this.fillStyle, alpha: this.globalAlpha }); },
+    fillText(text, x, y) { if (this.globalAlpha > 0) events.push({ time: now, type: "text", text, x, y, color: this.fillStyle, alpha: this.globalAlpha }); },
     measureText(text) { return { width: text.length * 7.8 }; },
     save() { stack.push([this.fillStyle, this.globalAlpha]); },
     restore() { [this.fillStyle, this.globalAlpha] = stack.pop(); },
@@ -105,10 +105,22 @@ function run(width, height) {
   assert(!events.some((e) => e.type === "text" && /FIRST CURVE|FIRST EDGE|HEART|BUBBLE/.test(e.text)), "Equation headings must be absent");
   const cardsPerFrame = new Map();
   events.filter((e) => isEquation(e) && e.text.startsWith("x")).forEach((e) => cardsPerFrame.set(e.time, (cardsPerFrame.get(e.time) || 0) + 1));
-  assert(Math.max(...cardsPerFrame.values()) <= 2, "Equation callouts are too crowded");
+  assert.equal(Math.max(...cardsPerFrame.values()), 4, "Multi-line reveal must show twice the previous two equations together");
+  // Fully typed rows can move smoothly with the camera, but must never swap sides.
+  const previousRows = new Map();
+  events.filter((e) => isEquation(e) && e.text.length > 25 && !e.text.includes("▏")).forEach((event) => {
+    const previous = previousRows.get(event.text);
+    if (previous && event.time - previous.time === 16) {
+      assert(Math.hypot(event.x - previous.x, event.y - previous.y) < 20, "Equation teleported between frames");
+    }
+    previousRows.set(event.text, event);
+  });
   assert(elements["end-bar"].classes.has("hidden"), "Replay appeared before color chapter");
   assert(!events.some((e) => e.color === "#f4b7cd"), "Letter color appeared during outlines");
+  assert(!events.some((e) => e.color === "#292428"), "Charcoal filled before the color chapter");
   advance(4000);
+  const firstInk = events.find((e) => e.color === "#292428");
+  assert(firstInk && Math.abs(firstInk.time - multiStart - 15900) <= 48, "Charcoal must begin filling at the start of coloring");
   assert(events.some((e) => e.color === "#f4b7cd"), "Letter color never began filling");
   assert(elements["end-bar"].classes.has("hidden"), "Replay appeared before colors completed");
   advance(5000);

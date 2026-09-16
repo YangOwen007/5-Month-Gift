@@ -21,12 +21,22 @@
   let phase = "idle", phaseStart = 0, raf = 0;
   let heartProgress = 0, multiProgress = 0, colorProgress = 0;
   let fullView, heartView, cam, frameTime = 0;
+  // Cache graph-space anchors so camera movement cannot flip text between sides.
+  const equationPositions = new Map();
   // Equations follow the original drawing clock; they never reschedule a shape.
   const examples = [
     { name: "ink-9", target: 5000 },
+    { name: "ink-7", target: 5000 },
+    { name: "letter-03-V", target: 5000 },
+    { name: "letter-01-L", target: 5000 },
     { name: "ink-3", target: 8200 },
+    { name: "ink-4", target: 8200 },
+    { name: "letter-06-A", target: 8200 },
+    { name: "letter-08-H", target: 8200 },
     { name: "letter-09-Y", target: 11200 },
-    { name: "letter-13-N", target: 13200 },
+    { name: "fur-0", target: 11200 },
+    { name: "ink-9", target: 11500 },
+    { name: "letter-13-N", target: 12200 },
   ];
 
   // Evaluate the same line or cubic Bernstein equation saved for each segment.
@@ -100,6 +110,7 @@
 
   // Fit both dimensions so the full gift stays visible on wide and narrow screens.
   function resize() {
+    equationPositions.clear();
     const dpr = Math.min(devicePixelRatio || 1, 2), w = innerWidth, h = innerHeight;
     canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
     canvas.style.width = w + "px"; canvas.style.height = h + "px"; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -201,7 +212,7 @@
       Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
   }
   function mathText(shape, segment, elapsed, drawDuration, occupied) {
-    if (elapsed < 0 || occupied.length >= 2) return;
+    if (elapsed < 0 || occupied.length >= 4) return;
     ctx.save();
     ctx.font = "15px 'Cambria Math', Georgia, serif";
     // One continuous expression, wrapping only when the viewport requires it.
@@ -218,7 +229,8 @@
     const [left, bottom] = screen(shape.bounds[0], shape.bounds[2]);
     const [right, top] = screen(shape.bounds[1], shape.bounds[3]);
     const drawing = { x: left - 10, y: top - 10, w: right - left + 20, h: bottom - top + 20 };
-    // Choose a nearby side with the least overlap, and clamp within the viewport.
+    // Choose a nearby side only on first appearance. Later frames reuse the
+    // graph-space position, regardless of other equations appearing or fading.
     const candidates = [[ax + 28, ay - height / 2], [ax - width - 28, ay - height / 2],
       [ax - width / 2, top - height - 24], [ax - width / 2, bottom + 24]]
       .map(([x, y]) => ({ x: Math.max(14, Math.min(innerWidth - width - 14, x)),
@@ -229,7 +241,16 @@
       return occupied.reduce((sum, other) => sum + overlap(box, other) * 10,
         overlap(box, drawing) + (dx * dx + dy * dy) * 0.2);
     };
-    const box = candidates.reduce((best, candidate) => score(candidate) < score(best) ? candidate : best);
+    if (!equationPositions.has(segment.id)) {
+      const chosen = candidates.reduce((best, candidate) => score(candidate) < score(best) ? candidate : best);
+      const scale = innerWidth / (2 * cam.halfW);
+      equationPositions.set(segment.id, [cam.cx + (chosen.x - innerWidth / 2) / scale,
+        cam.cy - (chosen.y - innerHeight / 2) / scale]);
+    }
+    const [px, py] = screen(...equationPositions.get(segment.id));
+    // Viewport clamping is continuous; it never reselects a side or graph anchor.
+    const box = { x: Math.max(14, Math.min(innerWidth - width - 14, px)),
+      y: Math.max(14, Math.min(innerHeight - height - 14, py)), w: width, h: height };
     occupied.push(box);
     const alpha = Math.min(clamp(elapsed / 150), 1 - clamp((elapsed - finish) / MATH.fade));
     ctx.globalAlpha = alpha;
@@ -256,7 +277,8 @@
       shapes.forEach((shape) => {
         // Same stagger, duration, easing, and traversal as v2-colored-sticker.
         const draw = clamp((multiProgress - shape.drawAt) / 0.48);
-        const fill = shape.kind === "ink" ? clamp((draw - 0.75) / 0.25) : clamp((colorProgress - shape.fillAt) / 0.38);
+        // Charcoal fills first in the color chapter, never during outline drawing.
+        const fill = shape.kind === "ink" ? clamp(colorProgress / 0.20) : clamp((colorProgress - shape.fillAt) / 0.38);
         drawShape(shape, ease(draw), fill, scale);
       });
     }
@@ -306,6 +328,7 @@
   }
   function start() {
     if (raf) cancelAnimationFrame(raf);
+    equationPositions.clear();
     heartProgress = multiProgress = colorProgress = 0;
     startScreen.classList.add("hidden"); endBar.classList.add("hidden");
     go("axes", performance.now()); raf = requestAnimationFrame(frame);
