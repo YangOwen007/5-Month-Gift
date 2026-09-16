@@ -7,7 +7,7 @@
   const G = window.GIFT_ARTWORK;
   const canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
   const startScreen = document.getElementById("start-screen"), endBar = document.getElementById("end-bar");
-  const MATH = { lead: 500, fade: 600, heartDraw: 5200, exampleDraw: 2600 };
+  const MATH = { lead: 500, fade: 600, heartDraw: 5200 };
   // The original 16s reveal + 0.9s hold now ends at 15.9s (one second sooner).
   // Ordinary stroke timing still uses the original 16s window.
   const DRAW_WINDOW = 16000;
@@ -21,12 +21,12 @@
   let phase = "idle", phaseStart = 0, raf = 0;
   let heartProgress = 0, multiProgress = 0, colorProgress = 0;
   let fullView, heartView, cam, frameTime = 0;
-  // Deliberately sparse examples: two cat curves and two letter edges.
+  // Equations follow the original drawing clock; they never reschedule a shape.
   const examples = [
-    { name: "ink-9", title: "speech bubble · first curve", at: 0 },
-    { name: "ink-3", title: "little smile · first curve", at: 5000 },
-    { name: "letter-09-Y", title: "Y · first edge", at: 8500 },
-    { name: "letter-13-N", title: "N · first edge", at: 12000 },
+    { name: "ink-9", target: 5000 },
+    { name: "ink-3", target: 8200 },
+    { name: "letter-09-Y", target: 11200 },
+    { name: "letter-13-N", target: 13200 },
   ];
 
   // Evaluate the same line or cubic Bernstein equation saved for each segment.
@@ -47,16 +47,8 @@
     const path = new Path2D(), segments = [];
     let total = 0;
     source.curves.forEach((ring, ringIndex) => {
-      let order = ring.map((points, segmentIndex) => ({ points, segmentIndex }));
-      // For featured shapes, start with a substantial edge instead of a tiny
-      // corner. Rotate only traversal order; saved geometry and IDs stay intact.
-      if (ringIndex === 0 && examples.some((e) => e.name === source.name)) {
-        const extent = (p) => Math.hypot(p.at(-1)[0] - p[0][0], p.at(-1)[1] - p[0][1]);
-        const first = order.reduce((best, entry, i) => extent(entry.points) > extent(order[best].points) ? i : best, 0);
-        order = [...order.slice(first), ...order.slice(0, first)];
-      }
-      path.moveTo(...order[0].points[0]);
-      order.forEach(({ points, segmentIndex }, traversalIndex) => {
+      path.moveTo(...ring[0][0]);
+      ring.forEach((points, segmentIndex) => {
         const steps = points.length === 2 ? 1 : 32, lengths = [0];
         let previous = points[0];
         for (let j = 1; j <= steps; j++) {
@@ -64,7 +56,7 @@
           lengths.push(lengths[j - 1] + Math.hypot(next[0] - previous[0], next[1] - previous[1])); previous = next;
         }
         const length = lengths.at(-1);
-        segments.push({ points, lengths, length, start: total, ringStart: traversalIndex === 0,
+        segments.push({ points, lengths, length, start: total, ringStart: segmentIndex === 0,
           id: `${source.name}/ring-${ringIndex}/segment-${segmentIndex}` });
         total += length; curveTo(path, points);
       });
@@ -75,7 +67,16 @@
   }
   const letters = G.letters.map(prepare), cat = G.cat.map(prepare), heart = prepare(G.heart);
   const shapes = [...cat, ...letters];
-  examples.forEach((example) => { example.shape = shapes.find((s) => s.name === example.name); });
+  // Invert the existing easing to locate a segment's actual start/end time.
+  // This lets typing lead the selected segment by 500ms without changing pace.
+  const inverseEase = (p) => p < 0.5 ? Math.cbrt(p / 4) : 1 - Math.cbrt((1 - p) / 4);
+  examples.forEach((example) => {
+    const shape = shapes.find((s) => s.name === example.name);
+    const timeAt = (distance) => DRAW_WINDOW * (shape.drawAt + 0.48 * inverseEase(clamp(distance / shape.length)));
+    const segment = shape.segments.reduce((best, s) => Math.abs(timeAt(s.start) - example.target) < Math.abs(timeAt(best.start) - example.target) ? s : best);
+    Object.assign(example, { shape, segment, at: timeAt(segment.start) - MATH.lead,
+      duration: timeAt(segment.start + segment.length) - timeAt(segment.start) });
+  });
   // Convert traveled distance to the local equation parameter for a continuous tip.
   function parameterAt(segment, distance) {
     const a = segment.lengths;
@@ -199,19 +200,20 @@
     return Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) *
       Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
   }
-  function mathCard(shape, title, elapsed, drawDuration, occupied) {
-    const finish = MATH.lead + drawDuration;
-    if (elapsed < 0 || elapsed >= finish + MATH.fade) return;
-    const segment = shape.segments[0];
+  function mathText(shape, segment, elapsed, drawDuration, occupied) {
+    if (elapsed < 0 || occupied.length >= 2) return;
     ctx.save();
-    ctx.font = "13px 'Cascadia Code', Consolas, monospace";
-    const width = Math.min(406, innerWidth - 28);
-    const lines = [equation(segment.points, 0), equation(segment.points, 1)]
-      .flatMap((line) => wrapEquation(line, width - 32));
-    const text = [...lines, "0 ≤ t ≤ 1"].join("\n");
+    ctx.font = "15px 'Cambria Math', Georgia, serif";
+    // One continuous expression, wrapping only when the viewport requires it.
+    const raw = `${equation(segment.points, 0)};  ${equation(segment.points, 1)};  0 ≤ t ≤ 1`;
+    const width = Math.min(900, innerWidth - 28, ctx.measureText(raw).width + 2);
+    const lines = wrapEquation(raw, width);
+    const text = lines.join("\n");
     const typingDuration = Math.min(2400, Math.max(1400, text.length * 18));
+    const finish = Math.max(MATH.lead + drawDuration, typingDuration);
+    if (elapsed >= finish + MATH.fade) { ctx.restore(); return; }
     const typed = text.slice(0, Math.floor(text.length * clamp(elapsed / typingDuration))).split("\n");
-    const height = 44 + (lines.length + 1) * 20;
+    const height = lines.length * 22;
     const [ax, ay] = screen(...evaluate(segment.points, 0.5));
     const [left, bottom] = screen(shape.bounds[0], shape.bounds[2]);
     const [right, top] = screen(shape.bounds[1], shape.bounds[3]);
@@ -229,27 +231,19 @@
     };
     const box = candidates.reduce((best, candidate) => score(candidate) < score(best) ? candidate : best);
     occupied.push(box);
-    const alpha = Math.min(clamp(elapsed / 150), 1 - clamp((elapsed - Math.max(finish, typingDuration)) / MATH.fade));
+    const alpha = Math.min(clamp(elapsed / 150), 1 - clamp((elapsed - finish) / MATH.fade));
     ctx.globalAlpha = alpha;
-    // A subtle leader connects the equation to the actual segment it describes.
-    ctx.strokeStyle = "rgba(176,104,134,0.6)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(ax, ay);
-    ctx.lineTo(Math.max(box.x, Math.min(box.x + width, ax)), Math.max(box.y, Math.min(box.y + height, ay))); ctx.stroke();
-    ctx.fillStyle = "#c56e91"; ctx.beginPath(); ctx.arc(ax, ay, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "rgba(255,250,247,0.95)"; ctx.strokeStyle = "rgba(166,111,135,0.35)";
-    ctx.beginPath(); ctx.roundRect(box.x, box.y, width, height, 12); ctx.fill(); ctx.stroke();
+    // Muted warm gray sits directly on the graph: no panel, title, or leader.
     ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillStyle = "#aa637e"; ctx.font = "600 12px 'Segoe UI', sans-serif";
-    ctx.fillText(title.toUpperCase(), box.x + 16, box.y + 12);
-    ctx.fillStyle = "#614555"; ctx.font = "13px 'Cascadia Code', Consolas, monospace";
-    typed.forEach((line, i) => ctx.fillText(line + (elapsed < typingDuration && i === typed.length - 1 ? "▏" : ""), box.x + 16, box.y + 35 + i * 20));
+    ctx.fillStyle = "#88776c";
+    typed.forEach((line, i) => ctx.fillText(line + (elapsed < typingDuration && i === typed.length - 1 ? "▏" : ""), box.x, box.y + i * 22));
     ctx.restore();
   }
   function drawMath() {
     const occupied = [], elapsed = frameTime - phaseStart;
-    if (phase === "heart") mathCard(heart, "heart · first curve", elapsed, MATH.heartDraw, occupied);
+    if (phase === "heart") mathText(heart, heart.segments[0], elapsed, MATH.heartDraw, occupied);
     if (phase === "multi") examples.forEach((example) => {
-      mathCard(example.shape, example.title, elapsed - example.at, MATH.exampleDraw, occupied);
+      mathText(example.shape, example.segment, elapsed - example.at, example.duration, occupied);
     });
   }
   function drawContent() {
@@ -260,10 +254,8 @@
     if (["multi", "color", "done"].includes(phase)) {
       // Paint backing first, then charcoal ink, gray fur, pink accents, and letters.
       shapes.forEach((shape) => {
-        const featured = examples.find((example) => example.name === shape.name);
-        const draw = featured && phase === "multi"
-          ? clamp((frameTime - phaseStart - featured.at - MATH.lead) / MATH.exampleDraw)
-          : featured ? 1 : clamp((multiProgress - shape.drawAt) / 0.48);
+        // Same stagger, duration, easing, and traversal as v2-colored-sticker.
+        const draw = clamp((multiProgress - shape.drawAt) / 0.48);
         const fill = shape.kind === "ink" ? clamp((draw - 0.75) / 0.25) : clamp((colorProgress - shape.fillAt) / 0.38);
         drawShape(shape, ease(draw), fill, scale);
       });

@@ -23,11 +23,12 @@ function run(width, height) {
   const callbacks = new Map(), events = [], stack = [], listeners = {};
   const ctx = {
     setTransform: finite, translate: finite, scale: finite,
-    moveTo: finite, lineTo: finite, arc: finite, fillRect: finite, roundRect: finite,
+    moveTo: finite, lineTo: finite, arc: finite, fillRect: finite,
+    roundRect() { throw new Error("Equation panels must not be drawn"); },
     globalAlpha: 1,
     beginPath() {}, closePath() {},
     stroke(path) { if (path) events.push({ time: now, type: "stroke", color: this.strokeStyle, closed: path.closed, first: path.first }); },
-    fillText(text) { if (this.globalAlpha > 0) events.push({ time: now, type: "text", text, alpha: this.globalAlpha }); },
+    fillText(text) { if (this.globalAlpha > 0) events.push({ time: now, type: "text", text, color: this.fillStyle, alpha: this.globalAlpha }); },
     measureText(text) { return { width: text.length * 7.8 }; },
     save() { stack.push([this.fillStyle, this.globalAlpha]); },
     restore() { [this.fillStyle, this.globalAlpha] = stack.pop(); },
@@ -81,18 +82,29 @@ function run(width, height) {
   elements["play-btn"].click(); advance(27800);
   // The first equation leads the heart by 0.5s, fades for 0.6s after drawing,
   // and only then begins the untouched three-second pause.
-  const firstTitle = events.find((e) => e.text === "HEART · FIRST CURVE");
+  const isEquation = (e) => e.type === "text" && e.color === "#88776c";
+  const firstTitle = events.find(isEquation);
   const firstHeart = events.find((e) => e.type === "stroke" && e.color === "#d45d72");
   assert(firstTitle && firstHeart, "Missing heart equation or drawing");
   assert(Math.abs(firstHeart.time - firstTitle.time - 500) <= 32, "Heart equation must lead drawing by 500ms");
   const finishedHeart = events.find((e) => e.type === "stroke" && e.color === "#d45d72" && e.closed);
-  const heartTitles = events.filter((e) => e.text === "HEART · FIRST CURVE");
+  const heartTitles = events.filter((e) => isEquation(e) && e.time < finishedHeart.time + 650);
   assert(heartTitles.some((e) => e.time > finishedHeart.time && e.alpha > 0 && e.alpha < 1), "Heart equation must fade after drawing");
-  const bubbleTitle = events.find((e) => e.text === "SPEECH BUBBLE · FIRST CURVE");
-  assert(Math.abs(bubbleTitle.time - finishedHeart.time - 3600) <= 64, "Pause must begin after the equation fades");
-  const headers = new Set(["HEART · FIRST CURVE", "SPEECH BUBBLE · FIRST CURVE", "LITTLE SMILE · FIRST CURVE", "Y · FIRST EDGE", "N · FIRST EDGE"]);
+  // Every shape must start and finish on the original colored-sticker schedule.
+  // Matching its first coordinate also checks that curve traversal wasn't rotated.
+  const firstOf = (shape) => JSON.stringify(shape.curves[0][0][0]);
+  const strokesOf = (shape) => events.filter((e) => e.type === "stroke" && JSON.stringify(e.first) === firstOf(shape));
+  const multiStart = strokesOf(G.letters[0])[0].time - 16;
+  assert(Math.abs(multiStart - finishedHeart.time - 3600) <= 64, "Pause must begin after the equation fades");
+  for (const shape of [...G.letters, ...G.cat]) {
+    const strokes = strokesOf(shape), full = strokes.find((e) => e.closed);
+    assert(strokes.length && full, `Missing original traversal for ${shape.name}`);
+    assert(Math.abs(strokes[0].time - multiStart - shape.drawAt * 16000) <= 32, `Changed start pace: ${shape.name}`);
+    assert(Math.abs(full.time - multiStart - (shape.drawAt + 0.48) * 16000) <= 32, `Changed duration: ${shape.name}`);
+  }
+  assert(!events.some((e) => e.type === "text" && /FIRST CURVE|FIRST EDGE|HEART|BUBBLE/.test(e.text)), "Equation headings must be absent");
   const cardsPerFrame = new Map();
-  events.filter((e) => headers.has(e.text)).forEach((e) => cardsPerFrame.set(e.time, (cardsPerFrame.get(e.time) || 0) + 1));
+  events.filter((e) => isEquation(e) && e.text.startsWith("x")).forEach((e) => cardsPerFrame.set(e.time, (cardsPerFrame.get(e.time) || 0) + 1));
   assert(Math.max(...cardsPerFrame.values()) <= 2, "Equation callouts are too crowded");
   assert(elements["end-bar"].classes.has("hidden"), "Replay appeared before color chapter");
   assert(!events.some((e) => e.color === "#f4b7cd"), "Letter color appeared during outlines");
@@ -102,7 +114,7 @@ function run(width, height) {
   advance(5000);
   assert(!elements["end-bar"].classes.has("hidden"), "Playback never reached final hold");
   assert.equal(callbacks.size, 0, "Final hold must stop scheduling frames");
-  assert(!events.some((e) => headers.has(e.text) && e.time > 28500 + 100), "Equations must clear before coloring");
+  assert(!events.some((e) => isEquation(e) && e.time > 28500 + 100), "Equations must clear before coloring");
   for (const color of ["#fffdfc", "#292428", "#f4b5cd", "#f2b0c8", "#c2c0c0"]) {
     assert(events.some((e) => e.color === color), `Missing sticker color ${color}`);
   }
@@ -115,7 +127,7 @@ function run(width, height) {
   advance(35000);
   assert(!elements["end-bar"].classes.has("hidden"));
   assert.equal(callbacks.size, 0);
-  console.log(`${width}x${height}: ${count} equations match; 500ms lead, fade/pause, sparse callouts, fill, resize, and Replay pass.`);
+  console.log(`${width}x${height}: ${count} equations match; original pacing for all shapes, floating text, heart timing, fill, resize, and Replay pass.`);
 }
 run(1920, 1080);
 run(390, 844);

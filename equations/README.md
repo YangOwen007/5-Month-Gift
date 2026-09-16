@@ -1,7 +1,7 @@
 # Saved drawing equations
 
 `sticker-v2.json` contains every equation used by the upgraded cat and lettering.
-The site now displays five representative equation callouts, derived directly
+The site now displays five representative floating equations, derived directly
 from these control points. Display coefficients are rounded to three decimals
 and marked ≈. This archive retains the complete, full-precision equations.
 
@@ -13,10 +13,11 @@ Each ring contains segments with IDs such as
 `main.js` when it prepares the drawing. `artwork.js` contains the same control
 points, in the same ring and segment order.
 
-For four featured shapes, the renderer rotates the first closed ring's traversal
-to begin with a substantial segment. This does not change the shape or saved
-segment IDs. The callout describes that first edge or curve; it is a representative
-equation, not a claim that one polynomial describes the whole closed shape.
+The renderer preserves the original colored-version curve order and drawing
+schedule. Floating text is timed to selected segments using the inverse of the
+existing easing function; displaying an equation never delays or speeds up a
+shape. Each displayed polynomial describes its selected edge or curve, not the
+whole closed shape. Exact segment IDs and archive data remain unchanged.
 
 - Coordinates use the original Cartesian world: **x right, y up**.
 - Each segment's parameter is **0 ≤ t ≤ 1**.
