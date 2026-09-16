@@ -1,7 +1,9 @@
 # Saved drawing equations
 
 `sticker-v2.json` contains every equation used by the upgraded cat and lettering.
-This is an archive only: the site does not display equation labels yet.
+The site now displays five representative equation callouts, derived directly
+from these control points. Display coefficients are rounded to three decimals
+and marked ≈. This archive retains the complete, full-precision equations.
 
 ## Matching an equation to a visible line
 
@@ -10,6 +12,11 @@ Each ring contains segments with IDs such as
 `speech-heart/ring-0/segment-3`. These are the same IDs constructed in
 `main.js` when it prepares the drawing. `artwork.js` contains the same control
 points, in the same ring and segment order.
+
+For four featured shapes, the renderer rotates the first closed ring's traversal
+to begin with a substantial segment. This does not change the shape or saved
+segment IDs. The callout describes that first edge or curve; it is a representative
+equation, not a claim that one polynomial describes the whole closed shape.
 
 - Coordinates use the original Cartesian world: **x right, y up**.
 - Each segment's parameter is **0 ≤ t ≤ 1**.

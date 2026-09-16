@@ -6,13 +6,17 @@ A static, dependency-free coordinate love note for Kathy.
 
 ## Storyboard
 
-1. Start screen → **Play**.
+1. **Happy 5 months!** / **from ur chickenbutt** → **Play**.
 2. Empty Cartesian guides (700 ms).
 3. Zoom into the speech-bubble heart (2,600 ms).
-4. Draw one continuous heart curve, easing in and following the tip (5,200 ms).
-5. Pause (3,000 ms).
-6. Zoom out as the outlined **I L♥VE / KATHY / CHEN** and sticker draw (16,000 ms).
-7. Hold the outlines briefly (900 ms).
+4. Type a heart equation; the continuous heart stroke starts 500 ms later and
+   draws for 5,200 ms. After both finish, the equation fades for 600 ms.
+5. Pause (3,000 ms), beginning after the equation has faded.
+6. Zoom out as the outlined **I L♥VE / KATHY / CHEN** and sticker draw. Four
+   representative equations type beside selected shapes, each leading its
+   drawing by 500 ms and fading afterward. At most two appear together.
+7. Coloring starts at the end of the 15,900 ms reveal: the former 900 ms hold
+   and 100 ms of settled reveal time have been removed (one second total).
 8. White, pink, and gray colors sweep through the cat and thick letter shapes
    with staggered timing (6,500 ms).
 9. Final hold → **Replay**, resetting every drawing and fill progress value.
@@ -37,8 +41,10 @@ while a stroke is incomplete; sampled arc lengths are used only for timing.
 | `tools/verify-animation.cjs` | Deterministic playback and equation smoke checks |
 | `geometry.js`, `preview-final.png` | Original handoff data and original preview, retained for reference |
 
-**Equation pop-ups are not implemented.** The saved IDs and formulas support
-matching a visible segment to its equation in a future animation.
+Equation callouts show a representative first curve or edge for five shapes,
+including the opening heart. Their polynomials come from the saved control
+points. Display coefficients are rounded to three decimals and marked **≈**;
+the full-precision geometry and equation archives remain unchanged.
 
 ## Run locally
 
@@ -53,6 +59,11 @@ Open http://127.0.0.1:8080/ and press Play. No build step is required.
 GitHub Pages publishes `main` / `/ (root)`.
 
 ## Restore the original version
+
+The colored sticker version, before equation callouts and title changes, is
+also saved locally and on GitHub as **`v2-colored-sticker`** (`8243e02`). To
+restore that checkpoint, use the restore command below with
+`--source=v2-colored-sticker` instead of `--source=v1-line-art`.
 
 The exact verified original is saved locally and on GitHub as **`v1-line-art`**,
 pointing to commit **`969a8a6`**. It can also be downloaded from the tag's archive.
